@@ -82,6 +82,18 @@ h2{font-size:16px;margin:0 0 10px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .pgrid .ph img{max-height:180px}
 .empty{font-size:13px;color:var(--muted);margin:0}
+.ph img{cursor:zoom-in}
+.ph img:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.lb{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 56px 40px}
+.lb[hidden]{display:none}
+.lb img{max-width:100%;max-height:78vh;object-fit:contain;border-radius:4px}
+.lb-cap{color:#fff;font-size:13px;margin:12px 0 0;text-align:center}
+.lb button{all:unset;cursor:pointer;color:#fff;font-size:28px;line-height:1;padding:8px 14px;border-radius:6px;background:rgba(255,255,255,.12)}
+.lb button:hover,.lb button:focus-visible{background:rgba(255,255,255,.25);outline:2px solid #fff;outline-offset:2px}
+.lb button[hidden]{display:none}
+.lb-close{position:absolute;top:12px;right:12px}
+.lb-prev{position:absolute;left:12px;top:50%;transform:translateY(-50%)}
+.lb-next{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
 .note{font-size:12px;color:var(--muted);margin-top:12px}
 .note b{color:var(--fg)}
 @media (max-width:600px){h1{font-size:19px}.kpi .val{font-size:20px}}
@@ -117,6 +129,13 @@ h2{font-size:16px;margin:0 0 10px}
 
 <div class="gantt" id="gantt">
   <div class="grid" id="grid"></div>
+</div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="照片預覽" hidden>
+  <button type="button" class="lb-close" aria-label="關閉">×</button>
+  <button type="button" class="lb-prev" aria-label="上一張">‹</button>
+  <img id="lb-img" alt="">
+  <p class="lb-cap" id="lb-cap"></p>
+  <button type="button" class="lb-next" aria-label="下一張">›</button>
 </div>
 <div class="tip" id="tip" hidden></div>
 
@@ -1106,15 +1125,57 @@ const PHOTOS = [
   { pid: 2, src: 'photos/gf-20261107-3.jpg', date: '2026-11-07', caption: '牆面及水龍頭' },
   { pid: 2, src: 'photos/gf-20261107-4.jpg', date: '2026-11-07', caption: '地坪抹平施工中' },
 ];
+let LB = [], lbI = 0; // 目前顯示的照片清單（依上傳日期新到舊）與目前索引
 function renderPhotos(){
-  const sorted = [...PHOTOS].sort((a,b) => b.date.localeCompare(a.date));
-  const card = ph => `<figure class="ph"><img src="${esc(ph.src)}" alt="${esc(ph.caption || PROJECTS[ph.pid-1].short)}" loading="lazy"><figcaption><b>${esc(ph.date.replace(/-/g,'/'))} 上傳</b>${ph.caption ? ' · ' + esc(ph.caption) : ''}</figcaption></figure>`;
-  document.getElementById('now').innerHTML = sorted[0] ? card(sorted[0]) : '<p class="empty">尚未上傳施工照片</p>';
+  LB = [...PHOTOS].sort((a,b) => b.date.localeCompare(a.date));
+  const card = ph => `<figure class="ph"><img src="${esc(ph.src)}" data-i="${LB.indexOf(ph)}" tabindex="0" role="button" aria-label="放大檢視 ${esc(ph.caption || PROJECTS[ph.pid-1].short)}" alt="${esc(ph.caption || PROJECTS[ph.pid-1].short)}" loading="lazy"><figcaption><b>${esc(ph.date.replace(/-/g,'/'))} 上傳</b>${ph.caption ? ' · ' + esc(ph.caption) : ''}</figcaption></figure>`;
+  document.getElementById('now').innerHTML = LB[0] ? card(LB[0]) : '<p class="empty">尚未上傳施工照片</p>';
   document.getElementById('areas').innerHTML = PROJECTS.map((p,i) => {
-    const list = sorted.filter(ph => ph.pid === i+1);
+    const list = LB.filter(ph => ph.pid === i+1);
     return `<section class="parea"><h3>${esc(p.name)}</h3>${list.length ? `<div class="pgrid">${list.map(card).join('')}</div>` : '<p class="empty">尚未上傳照片</p>'}</section>`;
   }).join('');
 }
+// 燈箱：點擊照片放大，可用按鈕、方向鍵切換，Esc 或點背景關閉
+const lb = document.getElementById('lb'), lbImg = document.getElementById('lb-img'), lbCap = document.getElementById('lb-cap');
+function showLB(i){
+  lbI = (i + LB.length) % LB.length;
+  const ph = LB[lbI], name = PROJECTS[ph.pid-1].short;
+  lbImg.src = ph.src;
+  lbImg.alt = ph.caption || name;
+  lbCap.textContent = `${name}｜${ph.date.replace(/-/g,'/')} 上傳${ph.caption ? '｜' + ph.caption : ''}（${lbI+1} / ${LB.length}）`;
+  const multi = LB.length > 1;
+  lb.querySelector('.lb-prev').hidden = !multi;
+  lb.querySelector('.lb-next').hidden = !multi;
+}
+function openLB(i){
+  showLB(i);
+  lb.hidden = false;
+  document.body.style.overflow = 'hidden';
+  lb.querySelector('.lb-close').focus();
+}
+function closeLB(){
+  lb.hidden = true;
+  lbImg.removeAttribute('src');
+  document.body.style.overflow = '';
+}
+document.addEventListener('click', e => {
+  const img = e.target.closest('.ph img[data-i]');
+  if (img) { openLB(+img.dataset.i); return; }
+  if (!lb.hidden) {
+    if (e.target === lb || e.target.closest('.lb-close')) closeLB();
+    else if (e.target.closest('.lb-prev')) showLB(lbI - 1);
+    else if (e.target.closest('.lb-next')) showLB(lbI + 1);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (!lb.hidden) {
+    if (e.key === 'Escape') closeLB();
+    else if (e.key === 'ArrowLeft') showLB(lbI - 1);
+    else if (e.key === 'ArrowRight') showLB(lbI + 1);
+    return;
+  }
+  if (e.key === 'Enter' && e.target.matches('.ph img[data-i]')) openLB(+e.target.dataset.i);
+});
 const SHEET_ID = '1ocB5KTsdMfxwsoi3hO2SZsPs2aGNNsGs_efBiMlikzY';
 const TABS = [
   '1. 共融遊具改建工程(1150907修)',
