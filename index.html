@@ -72,7 +72,6 @@ h2{font-size:16px;margin:0 0 10px}
 .tip[hidden]{display:none}
 .photos{margin-top:18px}
 .photos > h2{margin:0 0 8px;color:var(--brand)}
-.now{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px}
 .ph{margin:0}
 .ph img{width:100%;max-height:420px;object-fit:cover;border-radius:6px;display:block;background:var(--grid)}
 .ph figcaption{font-size:12px;color:var(--muted);margin-top:6px}
@@ -141,9 +140,7 @@ h2{font-size:16px;margin:0 0 10px}
 <div class="tip" id="tip" hidden></div>
 
 <section class="photos" aria-label="施工照片">
-  <h2>目前施工畫面</h2>
-  <div id="now" class="now" aria-live="polite"></div>
-  <h2 style="margin-top:18px">各工程施工照片</h2>
+  <h2>各工程施工照片</h2>
   <div id="areas"></div>
 </section>
 
@@ -1116,9 +1113,9 @@ renderKPIs(); renderProjects(); renderGantt();
 
 // ---- Live sync from the public Google Sheet (gviz JSON, no API key) ----
 // 施工照片清單。pid 對應工程編號（1–5），date 為上傳日期（YYYY-MM-DD），src 為 photos/ 資料夾內的檔名。
-// 新增照片時在此陣列加一筆即可，頁面會依上傳日期排序，並以最新一張作為「目前施工畫面」。
+// 新增照片時在此陣列加一筆即可，頁面會依上傳日期排序。zone 為選填的地點名稱，同一工程內相同 zone 的照片會放在一起。
 const PHOTOS = [
-  { pid: 1, zone: '共榮遊具', src: 'photos/pe-20261107-2.jpg', date: '2026-11-07', caption: '體能器材區地墊' },
+  { pid: 1, zone: '共融遊具', src: 'photos/pe-20261107-2.jpg', date: '2026-11-07', caption: '體能器材區地墊' },
   { pid: 1, src: 'photos/pe-20261107-1.jpg', date: '2026-11-07', caption: '遊具區現況' },
   { pid: 1, src: 'photos/pe-20261107-3.jpg', date: '2026-11-07', caption: '基地地坪，器材堆放中' },
   { pid: 2, src: 'photos/gf-20261107-1.jpg', date: '2026-11-07', caption: '小便斗區現況' },
@@ -1130,7 +1127,6 @@ let LB = [], lbI = 0; // 目前顯示的照片清單（依上傳日期新到舊�
 function renderPhotos(){
   LB = [...PHOTOS].sort((a,b) => b.date.localeCompare(a.date));
   const card = ph => `<figure class="ph"><img src="${esc(ph.src)}" data-i="${LB.indexOf(ph)}" tabindex="0" role="button" aria-label="放大檢視 ${esc(ph.caption || PROJECTS[ph.pid-1].short)}" alt="${esc(ph.caption || PROJECTS[ph.pid-1].short)}" loading="lazy"><figcaption><b>${esc(ph.date.replace(/-/g,'/'))} 上傳</b>${ph.caption ? ' · ' + esc(ph.caption) : ''}</figcaption></figure>`;
-  document.getElementById('now').innerHTML = LB[0] ? card(LB[0]) : '<p class="empty">尚未上傳施工照片</p>';
   document.getElementById('areas').innerHTML = PROJECTS.map((p,i) => {
     const list = LB.filter(ph => ph.pid === i+1);
     if (!list.length) return `<section class="parea"><h3>${esc(p.name)}</h3><p class="empty">尚未上傳照片</p></section>`;
