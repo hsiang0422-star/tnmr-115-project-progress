@@ -59,6 +59,13 @@ h2{font-size:16px;margin:0 0 10px}
 .lbl-row .nm{overflow:hidden;text-overflow:ellipsis}
 .track{position:relative;height:30px;border-bottom:1px solid var(--grid)}
 .track.proj-row{height:26px}
+.lbl-row.proj-row{height:auto;min-height:34px;white-space:normal;border-top:2px solid var(--line)}
+.leg-cell{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12px;color:var(--muted);padding:6px 10px;background:var(--bg);border-top:2px solid var(--line);border-bottom:1px solid var(--grid);min-height:34px}
+.leg-cell span{display:inline-flex;align-items:center;gap:5px}
+.mlab{position:absolute;top:9px;font-size:11px;color:var(--muted);font-weight:400;padding-left:3px;white-space:nowrap;pointer-events:none;z-index:2}
+.mlab.yr{color:var(--brand);font-weight:700}
+.hline{position:absolute;top:0;width:1px;background:var(--brand);pointer-events:none;z-index:3}
+.hline[hidden]{display:none}
 .vline{position:absolute;top:0;bottom:0;width:1px;background:var(--grid)}
 .today{position:absolute;top:0;bottom:0;width:2px;background:var(--today);z-index:1}
 .today-tag{position:absolute;top:-1px;transform:translateX(-50%);font-size:10px;background:var(--today);color:#fff;padding:0 4px;border-radius:3px;z-index:2}
@@ -108,8 +115,8 @@ h2{font-size:16px;margin:0 0 10px}
 
 <div class="toolbar">
   <div class="seg" role="group" aria-label="顯示範圍" id="scope">
-    <button type="button" data-v="sel" aria-pressed="true">所選專案</button>
-    <button type="button" data-v="all" aria-pressed="false">全部專案</button>
+    <button type="button" data-v="sel" aria-pressed="false">所選專案</button>
+    <button type="button" data-v="all" aria-pressed="true">全部專案</button>
   </div>
   <div class="seg" role="group" aria-label="篩選" id="filter">
     <button type="button" data-v="all" aria-pressed="true">全部任務</button>
@@ -118,17 +125,10 @@ h2{font-size:16px;margin:0 0 10px}
   </div>
 </div>
 
-<div class="legend">
-  <span><i class="sw" style="background:var(--done)"></i>已完成</span>
-  <span><i class="sw" style="background:var(--doing)"></i>進行中</span>
-  <span><i class="sw" style="background:var(--overdue)"></i>逾期未完成</span>
-  <span><i class="sw" style="background:var(--todo)"></i>未開始</span>
-  <span><i class="sw" style="background:var(--fail)"></i>流標</span>
-  <span><i class="sw" style="border:1px dashed var(--muted);background:none"></i>預定期程</span>
-</div>
 
 <div class="gantt" id="gantt">
   <div class="grid" id="grid"></div>
+  <div class="hline" id="hline" hidden></div>
 </div>
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="照片預覽" hidden>
   <button type="button" class="lb-close" aria-label="關閉">×</button>
@@ -982,7 +982,7 @@ function normalize(p){
 }
 PROJECTS.forEach(normalize);
 
-let state = {sel:0, scope:'sel', filter:'all'};
+let state = {sel:0, scope:'all', filter:'all'};
 const pct = d => (t(d) - t(RANGE_START)) / (t(RANGE_END) - t(RANGE_START)) * 100;
 const clamp = (v) => Math.max(0, Math.min(100, v));
 const fmt = d => d ? d.replace(/-/g,'/') : '—';
@@ -1009,6 +1009,17 @@ function renderProjects(){
     </button>`).join('');
 }
 
+function monthLabels(){
+  let s=''; const d=new Date(Date.UTC(2025,11,1));
+  while (d <= new Date(Date.UTC(2027,7,1))) {
+    const iso=d.toISOString().slice(0,10), m=d.getUTCMonth()+1;
+    const yr = m===1 || s==='';
+    s+=`<div class="mlab${m===1?' yr':''}" style="left:${clamp(pct(iso))}%">${yr ? d.getUTCFullYear()+'/'+m : m+'月'}</div>`;
+    d.setUTCMonth(d.getUTCMonth()+1);
+  }
+  return s;
+}
+const LEGEND = `<span><i class="sw" style="background:var(--done)"></i>已完成</span><span><i class="sw" style="background:var(--doing)"></i>進行中</span><span><i class="sw" style="background:var(--overdue)"></i>逾期未完成</span><span><i class="sw" style="background:var(--todo)"></i>未開始</span><span><i class="sw" style="background:var(--fail)"></i>流標</span><span><i class="sw" style="border:1px dashed var(--muted);background:none"></i>預定期程</span>`;
 function axisHTML(){
   const ticks = [];
   const d = new Date(Date.UTC(2025,11,1));
@@ -1054,12 +1065,13 @@ function tipText(p, task){
 
 function renderGantt(){
   const projs = state.scope==='all' ? PROJECTS.map((p,i)=>[p,i]) : [[PROJECTS[state.sel], state.sel]];
-  let head = `<div class="lbl-head">工作項目</div><div class="axis">${axisHTML()}</div>`;
+  let head = '';
   let rows = '';
   projs.forEach(([p,i]) => {
     const tasks = p.tasks.filter(x => state.filter==='all' || (state.filter==='open' && x.st!=='done') || (state.filter==='overdue' && x.st==='overdue'));
     if (!tasks.length) return;
-    rows += `<div class="lbl-row proj-row">${esc(p.name)}</div><div class="track proj-row">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div></div>`;
+    rows += `<div class="lbl-row proj-row">${esc(p.name)}</div><div class="leg-cell">${LEGEND}</div>`;
+    rows += `<div class="lbl-head">工作項目</div><div class="axis">${gridLines()}${monthLabels()}<div class="today" style="left:${pct(TODAY)}%"></div></div>`;
     tasks.forEach(x => {
       rows += `<div class="lbl-row"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span></div>
       <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}
@@ -1082,17 +1094,35 @@ function showTip(e, html){
   tip.style.left = x + 'px'; tip.style.top = (r.top - 8 - tip.offsetHeight) + 'px';
   if (parseFloat(tip.style.top) < 0) tip.style.top = (r.bottom + 8) + 'px';
 }
-document.getElementById('grid').addEventListener('mouseover', e => {
-  const h = e.target.closest('.hit'); if (!h) return;
-  const p = PROJECTS[h.dataset.p], x = p.tasks[h.dataset.t];
-  showTip({target:h}, tipText(p,x));
+const ganttEl = document.getElementById('gantt'), gridEl = document.getElementById('grid'), hline = document.getElementById('hline');
+const WD = '日一二三四五六';
+function dateAt(clientX, el){
+  const r = el.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+  const d = new Date(t(RANGE_START) + ratio * (t(RANGE_END) - t(RANGE_START)));
+  return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}（${WD[d.getUTCDay()]}）`;
+}
+function hideHover(){ tip.hidden = true; hline.hidden = true; }
+gridEl.addEventListener('pointermove', e => {
+  const tr = e.target.closest('.track, .axis'); if (!tr) { hideHover(); return; }
+  let html = `<b>游標日期：${dateAt(e.clientX, tr)}</b>`;
+  const h = e.target.closest('.hit');
+  if (h) { const p = PROJECTS[h.dataset.p], x = p.tasks[h.dataset.t]; html += `<div style="border-top:1px solid currentColor;opacity:.35;margin:5px 0"></div>` + tipText(p,x); }
+  tip.innerHTML = html; tip.hidden = false;
+  let x = e.clientX + 14, y = e.clientY + 16;
+  if (x + tip.offsetWidth > innerWidth - 8) x = e.clientX - 14 - tip.offsetWidth;
+  if (y + tip.offsetHeight > innerHeight - 8) y = e.clientY - 16 - tip.offsetHeight;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  hline.hidden = false;
+  hline.style.left = (e.clientX - ganttEl.getBoundingClientRect().left + ganttEl.scrollLeft) + 'px';
+  hline.style.height = gridEl.offsetHeight + 'px';
 });
+gridEl.addEventListener('pointerleave', hideHover);
 document.getElementById('grid').addEventListener('focusin', e => {
   const h = e.target.closest('.hit'); if (!h) return;
   const p = PROJECTS[h.dataset.p], x = p.tasks[h.dataset.t];
   showTip({target:h}, tipText(p,x));
 });
-document.getElementById('grid').addEventListener('mouseout', e => { if (e.target.closest('.hit')) tip.hidden = true; });
 document.getElementById('grid').addEventListener('focusout', () => { tip.hidden = true; });
 
 document.getElementById('projects').addEventListener('click', e => {
