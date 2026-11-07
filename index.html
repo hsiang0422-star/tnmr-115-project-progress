@@ -79,6 +79,7 @@ h2{font-size:16px;margin:0 0 10px}
 .ph figcaption b{color:var(--fg)}
 .parea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px}
 .parea h3{font-size:14px;margin:0 0 8px;color:var(--brand)}
+.parea .zone{font-size:13px;margin:10px 0 6px;color:var(--fg)}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .pgrid .ph img{max-height:180px}
 .empty{font-size:13px;color:var(--muted);margin:0}
@@ -1117,7 +1118,7 @@ renderKPIs(); renderProjects(); renderGantt();
 // 施工照片清單。pid 對應工程編號（1–5），date 為上傳日期（YYYY-MM-DD），src 為 photos/ 資料夾內的檔名。
 // 新增照片時在此陣列加一筆即可，頁面會依上傳日期排序，並以最新一張作為「目前施工畫面」。
 const PHOTOS = [
-  { pid: 1, src: 'photos/pe-20261107-2.jpg', date: '2026-11-07', caption: '體能器材區地墊' },
+  { pid: 1, zone: '共榮遊具', src: 'photos/pe-20261107-2.jpg', date: '2026-11-07', caption: '體能器材區地墊' },
   { pid: 1, src: 'photos/pe-20261107-1.jpg', date: '2026-11-07', caption: '遊具區現況' },
   { pid: 1, src: 'photos/pe-20261107-3.jpg', date: '2026-11-07', caption: '基地地坪，器材堆放中' },
   { pid: 2, src: 'photos/gf-20261107-1.jpg', date: '2026-11-07', caption: '小便斗區現況' },
@@ -1132,7 +1133,12 @@ function renderPhotos(){
   document.getElementById('now').innerHTML = LB[0] ? card(LB[0]) : '<p class="empty">尚未上傳施工照片</p>';
   document.getElementById('areas').innerHTML = PROJECTS.map((p,i) => {
     const list = LB.filter(ph => ph.pid === i+1);
-    return `<section class="parea"><h3>${esc(p.name)}</h3>${list.length ? `<div class="pgrid">${list.map(card).join('')}</div>` : '<p class="empty">尚未上傳照片</p>'}</section>`;
+    if (!list.length) return `<section class="parea"><h3>${esc(p.name)}</h3><p class="empty">尚未上傳照片</p></section>`;
+    // 依 zone（地點）分組，沒有 zone 的照片放在無標題的群組
+    const groups = new Map();
+    list.forEach(ph => { const k = ph.zone || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(ph); });
+    const body = [...groups].map(([zone, items]) => `${zone ? `<h4 class="zone">${esc(zone)}</h4>` : ''}<div class="pgrid">${items.map(card).join('')}</div>`).join('');
+    return `<section class="parea"><h3>${esc(p.name)}</h3>${body}</section>`;
   }).join('');
 }
 // 燈箱：點擊照片放大，可用按鈕、方向鍵切換，Esc 或點背景關閉
