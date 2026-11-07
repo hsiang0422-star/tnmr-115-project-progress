@@ -60,12 +60,11 @@ h2{font-size:16px;margin:0 0 10px}
 .lbl-row.na .nm,.lbl-row.na .id{color:var(--muted);text-decoration:line-through}
 .na-tag{flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:1px 6px}
 .memo:hover,.memo:focus-visible{outline:2px solid #e0a800;outline-offset:1px}
-.memo{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;padding:2px 6px;border-radius:9px;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;cursor:help}
+.memo{flex:none;display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;line-height:1;padding:3px 8px;border-radius:11px;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;cursor:help}
 :root[data-theme="dark"] .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}}
 .memo-star{position:absolute;top:50%;transform:translateY(-50%);margin-left:4px;font-size:15px;line-height:1;color:#e0a800;text-shadow:0 0 2px var(--panel),0 0 2px var(--panel);pointer-events:none;z-index:2}
-.tip .note-box{display:block;margin:6px 0;padding:6px 8px;border-radius:5px;background:#fff3cd;color:#5c4400;border-left:3px solid #e0a800;white-space:pre-wrap;font-weight:600}
-.tip{max-width:300px}
+.tip .note-box{display:block;margin:8px 0;padding:8px 10px;border-radius:5px;background:#fff3cd;color:#5c4400;border-left:3px solid #e0a800;white-space:pre-wrap;font-weight:600}
 .tip.memo-only{background:none;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.18);border-radius:5px}
 .tip.memo-only .note-box{margin:0;border:1px solid #f0d58a;border-left:3px solid #e0a800}
 .track{position:relative;height:30px;border-bottom:1px solid var(--grid)}
@@ -88,7 +87,7 @@ h2{font-size:16px;margin:0 0 10px}
 .act.fail{opacity:.6}
 .hit{position:absolute;inset:0;cursor:pointer}
 .hit:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
-.tip{position:fixed;z-index:20;background:var(--fg);color:var(--bg);font-size:12px;padding:8px 10px;border-radius:6px;max-width:260px;pointer-events:none;line-height:1.5}
+.tip{position:fixed;z-index:20;background:var(--fg);color:var(--bg);font-size:14px;padding:10px 12px;border-radius:8px;max-width:340px;pointer-events:none;line-height:1.6}
 .tip[hidden]{display:none}
 .photos{margin-top:18px}
 .photos > h2{margin:0 0 8px;color:var(--brand)}
