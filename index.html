@@ -57,6 +57,11 @@ h2{font-size:16px;margin:0 0 10px}
 .lbl-row{height:30px;display:flex;align-items:center;gap:6px;font-size:12.5px;border-bottom:1px solid var(--grid);cursor:default;white-space:nowrap;overflow:hidden}
 .lbl-row .id{color:var(--muted);font-variant-numeric:tabular-nums;min-width:30px}
 .lbl-row .nm{overflow:hidden;text-overflow:ellipsis}
+.memo{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;padding:2px 6px;border-radius:9px;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;cursor:help}
+:root[data-theme="dark"] .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}}
+.memo-dot{position:absolute;top:3px;width:7px;height:7px;border-radius:50%;background:#e0a800;border:1px solid var(--panel);pointer-events:none;z-index:2}
+.tip .note-line{display:block;margin-top:5px;padding-top:5px;border-top:1px dashed currentColor;white-space:pre-wrap}
 .track{position:relative;height:30px;border-bottom:1px solid var(--grid)}
 .track.proj-row{height:26px}
 .lbl-row.proj-row{height:auto;min-height:34px;white-space:normal;border-top:2px solid var(--line)}
@@ -122,6 +127,7 @@ h2{font-size:16px;margin:0 0 10px}
     <button type="button" data-v="all" aria-pressed="true">全部任務</button>
     <button type="button" data-v="open" aria-pressed="false">未完成</button>
     <button type="button" data-v="overdue" aria-pressed="false">逾期</button>
+    <button type="button" data-v="note" aria-pressed="false">📝 有備註</button>
   </div>
 </div>
 
@@ -169,10 +175,10 @@ const CODE = {d:'done', g:'doing', t:'todo', f:'fail'};
 // Derive per-task status and overdue flag (p.tasks holds raw tuples until normalized)
 function normalize(p){
   p.tasks = p.tasks.map(r => {
-    const [id,name,ps,pe,as,ae,c] = r;
+    const [id,name,ps,pe,as,ae,c,note] = r;
     let st = CODE[c];
     if (st !== 'done' && st !== 'fail' && pe && t(pe) < t(TODAY)) st = 'overdue';
-    return {id,name,ps,pe,as,ae,st,raw:c};
+    return {id,name,ps,pe,as,ae,st,raw:c,note:note||''};
   });
 }
 PROJECTS.forEach(normalize);
@@ -246,7 +252,7 @@ function barsFor(task){
   }
   let as = task.as, ae = task.ae;
   if (as) {
-    if (!ae && task.st === 'doing') ae = TODAY;
+    if (!ae && (task.st === 'doing' || (task.st === 'overdue' && task.raw === 'g'))) ae = TODAY;
     if (!ae && task.st === 'fail') ae = as;
     const a = clamp(pct(as)), b = clamp(pct(ae || as) + 0.25);
     out += `<div class="act ${task.st}" style="left:${a}%;width:${Math.max(b-a,0.3)}%"></div>`;
@@ -255,7 +261,7 @@ function barsFor(task){
 }
 
 function tipText(p, task){
-  return `<b>${esc(task.id)} ${esc(task.name)}</b><br>${esc(p.short)}<br>狀態：${ST_LABEL[task.st]}<br>預定：${fmt(task.ps)} ～ ${fmt(task.pe)}<br>實際：${fmt(task.as)} ～ ${fmt(task.ae)}`;
+  return `<b>${esc(task.id)} ${esc(task.name)}</b><br>${esc(p.short)}<br>狀態：${ST_LABEL[task.st]}<br>預定：${fmt(task.ps)} ～ ${fmt(task.pe)}<br>實際：${fmt(task.as)} ～ ${fmt(task.ae)}${task.note ? `<span class="note-line">📝 備註：${esc(task.note)}</span>` : ''}`;
 }
 
 function renderGantt(){
@@ -263,13 +269,13 @@ function renderGantt(){
   let head = '';
   let rows = '';
   projs.forEach(([p,i]) => {
-    const tasks = p.tasks.filter(x => state.filter==='all' || (state.filter==='open' && x.st!=='done') || (state.filter==='overdue' && x.st==='overdue'));
+    const tasks = p.tasks.filter(x => state.filter==='all' || (state.filter==='open' && x.st!=='done') || (state.filter==='overdue' && x.st==='overdue') || (state.filter==='note' && x.note));
     if (!tasks.length) return;
     rows += `<div class="lbl-row proj-row">${esc(p.name)}</div><div class="leg-cell">${LEGEND}</div>`;
     rows += `<div class="lbl-head">工作項目</div><div class="axis">${gridLines()}${monthLabels()}<div class="today" style="left:${pct(TODAY)}%"></div></div>`;
     tasks.forEach(x => {
-      rows += `<div class="lbl-row"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span></div>
-      <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}
+      rows += `<div class="lbl-row"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.note ? `<span class="memo" title="備註：${esc(x.note)}">📝 備註</span>` : ''}</div>
+      <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}${x.note ? `<div class="memo-dot" style="left:calc(${clamp(pct(x.pe || x.ae || x.as || x.ps || TODAY))}% + 2px)"></div>` : ''}
         <div class="hit" tabindex="0" role="button" aria-label="${esc(p.short+' '+x.id+' '+x.name+' '+ST_LABEL[x.st])}" data-p="${PROJECTS.indexOf(p)}" data-t="${p.tasks.indexOf(x)}"></div></div>`;
     });
   });
@@ -412,7 +418,7 @@ const TABS = [
   '無障礙斜坡道工程(1150907修)',
   '交通車廊道鋼構工程'
 ];
-const RANGE = 'A1:J70';
+const RANGE = 'A1:K70'; // K 欄為「備註說明」
 const STATUS_CODE = {'已完成':'d','進行中':'g','流標':'f','未開始':'t'};
 const normDate = s => {
   const m = String(s||'').trim().match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
@@ -445,7 +451,7 @@ function parseTab(rows){
     if (status === '不適用') return;
     const code = STATUS_CODE[status] || (status ? null : 't');
     if (!code) return;
-    tasks.push([id, String(row[2]||'').trim(), normDate(row[5]), normDate(row[6]), normDate(row[7]), normDate(row[8]), code]);
+    tasks.push([id, String(row[2]||'').trim(), normDate(row[5]), normDate(row[6]), normDate(row[7]), normDate(row[8]), code, String(row[10]||'').trim()]);
   });
   return {tasks, total, done};
 }
