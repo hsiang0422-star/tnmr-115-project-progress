@@ -60,8 +60,9 @@ h2{font-size:16px;margin:0 0 10px}
 .memo{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;padding:2px 6px;border-radius:9px;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;cursor:help}
 :root[data-theme="dark"] .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}}
-.memo-dot{position:absolute;top:3px;width:7px;height:7px;border-radius:50%;background:#e0a800;border:1px solid var(--panel);pointer-events:none;z-index:2}
-.tip .note-line{display:block;margin-top:5px;padding-top:5px;border-top:1px dashed currentColor;white-space:pre-wrap}
+.memo-star{position:absolute;top:50%;transform:translateY(-50%);margin-left:4px;font-size:15px;line-height:1;color:#e0a800;text-shadow:0 0 2px var(--panel),0 0 2px var(--panel);pointer-events:none;z-index:2}
+.tip .note-box{display:block;margin:6px 0;padding:6px 8px;border-radius:5px;background:#fff3cd;color:#5c4400;border-left:3px solid #e0a800;white-space:pre-wrap;font-weight:600}
+.tip{max-width:300px}
 .track{position:relative;height:30px;border-bottom:1px solid var(--grid)}
 .track.proj-row{height:26px}
 .lbl-row.proj-row{height:auto;min-height:34px;white-space:normal;border-top:2px solid var(--line)}
@@ -127,7 +128,7 @@ h2{font-size:16px;margin:0 0 10px}
     <button type="button" data-v="all" aria-pressed="true">全部任務</button>
     <button type="button" data-v="open" aria-pressed="false">未完成</button>
     <button type="button" data-v="overdue" aria-pressed="false">逾期</button>
-    <button type="button" data-v="note" aria-pressed="false">📝 有備註</button>
+    <button type="button" data-v="note" aria-pressed="false">★ 有備註</button>
   </div>
 </div>
 
@@ -220,7 +221,7 @@ function monthLabels(){
   }
   return s;
 }
-const LEGEND = `<span><i class="sw" style="background:var(--done)"></i>已完成</span><span><i class="sw" style="background:var(--doing)"></i>進行中</span><span><i class="sw" style="background:var(--overdue)"></i>逾期未完成</span><span><i class="sw" style="background:var(--todo)"></i>未開始</span><span><i class="sw" style="background:var(--fail)"></i>流標</span><span><i class="sw" style="border:1px dashed var(--muted);background:none"></i>預定期程</span>`;
+const LEGEND = `<span><i class="sw" style="background:var(--done)"></i>已完成</span><span><i class="sw" style="background:var(--doing)"></i>進行中</span><span><i class="sw" style="background:var(--overdue)"></i>逾期未完成</span><span><i class="sw" style="background:var(--todo)"></i>未開始</span><span><i class="sw" style="background:var(--fail)"></i>流標</span><span><i class="sw" style="border:1px dashed var(--muted);background:none"></i>預定期程</span><span><b style="color:#e0a800;font-size:14px;line-height:1">★</b>有備註（滑鼠移過去看內容）</span>`;
 function axisHTML(){
   const ticks = [];
   const d = new Date(Date.UTC(2025,11,1));
@@ -260,8 +261,16 @@ function barsFor(task){
   return out;
 }
 
+function memoStar(task){
+  const ends = [task.pe, task.ae, task.as, task.ps].filter(Boolean);
+  if (!task.ae && task.as && (task.st === 'doing' || task.raw === 'g')) ends.push(TODAY);
+  const last = ends.length ? ends.sort().pop() : TODAY;
+  const left = clamp(pct(last) + 100*DAY/(t(RANGE_END)-t(RANGE_START)));
+  return `<div class="memo-star" style="left:${left}%" aria-hidden="true">★</div>`;
+}
 function tipText(p, task){
-  return `<b>${esc(task.id)} ${esc(task.name)}</b><br>${esc(p.short)}<br>狀態：${ST_LABEL[task.st]}<br>預定：${fmt(task.ps)} ～ ${fmt(task.pe)}<br>實際：${fmt(task.as)} ～ ${fmt(task.ae)}${task.note ? `<span class="note-line">📝 備註：${esc(task.note)}</span>` : ''}`;
+  const note = task.note ? `<span class="note-box">★ 備註：${esc(task.note)}</span>` : '';
+  return `<b>${esc(task.id)} ${esc(task.name)}</b>${note || '<br>'}${esc(p.short)}<br>狀態：${ST_LABEL[task.st]}<br>預定：${fmt(task.ps)} ～ ${fmt(task.pe)}<br>實際：${fmt(task.as)} ～ ${fmt(task.ae)}`;
 }
 
 function renderGantt(){
@@ -274,8 +283,8 @@ function renderGantt(){
     rows += `<div class="lbl-row proj-row">${esc(p.name)}</div><div class="leg-cell">${LEGEND}</div>`;
     rows += `<div class="lbl-head">工作項目</div><div class="axis">${gridLines()}${monthLabels()}<div class="today" style="left:${pct(TODAY)}%"></div></div>`;
     tasks.forEach(x => {
-      rows += `<div class="lbl-row"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.note ? `<span class="memo" title="備註：${esc(x.note)}">📝 備註</span>` : ''}</div>
-      <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}${x.note ? `<div class="memo-dot" style="left:calc(${clamp(pct(x.pe || x.ae || x.as || x.ps || TODAY))}% + 2px)"></div>` : ''}
+      rows += `<div class="lbl-row"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.note ? `<span class="memo" title="備註：${esc(x.note)}">★ 備註</span>` : ''}</div>
+      <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}${x.note ? memoStar(x) : ''}
         <div class="hit" tabindex="0" role="button" aria-label="${esc(p.short+' '+x.id+' '+x.name+' '+ST_LABEL[x.st])}" data-p="${PROJECTS.indexOf(p)}" data-t="${p.tasks.indexOf(x)}"></div></div>`;
     });
   });
