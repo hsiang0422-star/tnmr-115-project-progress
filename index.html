@@ -70,6 +70,18 @@ h2{font-size:16px;margin:0 0 10px}
 .hit:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
 .tip{position:fixed;z-index:20;background:var(--fg);color:var(--bg);font-size:12px;padding:8px 10px;border-radius:6px;max-width:260px;pointer-events:none;line-height:1.5}
 .tip[hidden]{display:none}
+.photos{margin-top:18px}
+.photos > h2{margin:0 0 8px;color:var(--brand)}
+.now{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px}
+.ph{margin:0}
+.ph img{width:100%;max-height:420px;object-fit:cover;border-radius:6px;display:block;background:var(--grid)}
+.ph figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+.ph figcaption b{color:var(--fg)}
+.parea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.parea h3{font-size:14px;margin:0 0 8px;color:var(--brand)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.pgrid .ph img{max-height:180px}
+.empty{font-size:13px;color:var(--muted);margin:0}
 .note{font-size:12px;color:var(--muted);margin-top:12px}
 .note b{color:var(--fg)}
 @media (max-width:600px){h1{font-size:19px}.kpi .val{font-size:20px}}
@@ -107,6 +119,13 @@ h2{font-size:16px;margin:0 0 10px}
   <div class="grid" id="grid"></div>
 </div>
 <div class="tip" id="tip" hidden></div>
+
+<section class="photos" aria-label="施工照片">
+  <h2>目前施工畫面</h2>
+  <div id="now" class="now" aria-live="polite"></div>
+  <h2 style="margin-top:18px">各工程施工照片</h2>
+  <div id="areas"></div>
+</section>
 
 <p class="note">
   <b>資料說明：</b>本頁資料每 5 分鐘自來源試算表同步；若無法連線，畫面會顯示內建快照。新增工程尚未填列日期，排程以試算表資料為準。
@@ -1076,6 +1095,26 @@ document.getElementById('filter').addEventListener('click', e => {
 renderKPIs(); renderProjects(); renderGantt();
 
 // ---- Live sync from the public Google Sheet (gviz JSON, no API key) ----
+// 施工照片清單。pid 對應工程編號（1–5），date 為上傳日期（YYYY-MM-DD），src 為 photos/ 資料夾內的檔名。
+// 新增照片時在此陣列加一筆即可，頁面會依上傳日期排序，並以最新一張作為「目前施工畫面」。
+const PHOTOS = [
+  { pid: 1, src: 'photos/pe-20261107-2.jpg', date: '2026-11-07', caption: '體能器材區地墊' },
+  { pid: 1, src: 'photos/pe-20261107-1.jpg', date: '2026-11-07', caption: '遊具區現況' },
+  { pid: 1, src: 'photos/pe-20261107-3.jpg', date: '2026-11-07', caption: '基地地坪，器材堆放中' },
+  { pid: 2, src: 'photos/gf-20261107-1.jpg', date: '2026-11-07', caption: '小便斗區現況' },
+  { pid: 2, src: 'photos/gf-20261107-2.jpg', date: '2026-11-07', caption: '室內牆面及小便斗' },
+  { pid: 2, src: 'photos/gf-20261107-3.jpg', date: '2026-11-07', caption: '牆面及水龍頭' },
+  { pid: 2, src: 'photos/gf-20261107-4.jpg', date: '2026-11-07', caption: '地坪抹平施工中' },
+];
+function renderPhotos(){
+  const sorted = [...PHOTOS].sort((a,b) => b.date.localeCompare(a.date));
+  const card = ph => `<figure class="ph"><img src="${esc(ph.src)}" alt="${esc(ph.caption || PROJECTS[ph.pid-1].short)}" loading="lazy"><figcaption><b>${esc(ph.date.replace(/-/g,'/'))} 上傳</b>${ph.caption ? ' · ' + esc(ph.caption) : ''}</figcaption></figure>`;
+  document.getElementById('now').innerHTML = sorted[0] ? card(sorted[0]) : '<p class="empty">尚未上傳施工照片</p>';
+  document.getElementById('areas').innerHTML = PROJECTS.map((p,i) => {
+    const list = sorted.filter(ph => ph.pid === i+1);
+    return `<section class="parea"><h3>${esc(p.name)}</h3>${list.length ? `<div class="pgrid">${list.map(card).join('')}</div>` : '<p class="empty">尚未上傳照片</p>'}</section>`;
+  }).join('');
+}
 const SHEET_ID = '1ocB5KTsdMfxwsoi3hO2SZsPs2aGNNsGs_efBiMlikzY';
 const TABS = [
   '1. 共融遊具改建工程(1150907修)',
@@ -1164,6 +1203,7 @@ async function syncAll(){
   renderKPIs(); renderProjects(); renderGantt();
   setLive(`已同步 ${fmtTime(lastSync)}（每 5 分鐘更新${ok < TABS.length ? '；部分分頁讀取失敗' : ''}）`);
 }
+renderPhotos();
 syncAll();
 setInterval(syncAll, 5 * 60 * 1000);
 </script>
