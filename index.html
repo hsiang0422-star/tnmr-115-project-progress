@@ -57,6 +57,8 @@ h2{font-size:16px;margin:0 0 10px}
 .lbl-row{height:30px;display:flex;align-items:center;gap:6px;font-size:12.5px;border-bottom:1px solid var(--grid);cursor:default;white-space:nowrap;overflow:hidden}
 .lbl-row .id{color:var(--muted);font-variant-numeric:tabular-nums;min-width:30px}
 .lbl-row .nm{overflow:hidden;text-overflow:ellipsis}
+.lbl-row.na .nm,.lbl-row.na .id{color:var(--muted);text-decoration:line-through}
+.na-tag{flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:1px 6px}
 .memo{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;padding:2px 6px;border-radius:9px;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;cursor:help}
 :root[data-theme="dark"] .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}}
@@ -161,7 +163,7 @@ const TODAY = new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Taipei'});
 const RANGE_START = '2025-12-01', RANGE_END = '2027-08-31';
 const DAY = 86400000;
 const t = s => Date.parse(s + 'T00:00:00Z');
-const ST_LABEL = {done:'已完成', doing:'進行中', overdue:'逾期', todo:'未開始', fail:'流標'};
+const ST_LABEL = {done:'已完成', doing:'進行中', overdue:'逾期', todo:'未開始', fail:'流標', na:'不適用'};
 
 // [id, name, planStart, planEnd, actStart, actEnd, code]  code: d=done, g=doing, t=todo, f=fail
 const PROJECTS = [
@@ -171,14 +173,14 @@ const PROJECTS = [
  {"name": "4. 無障礙斜坡道工程", "short": "無障礙斜坡道", "done": 8, "total": 25, "pct": 32.0, "tasks": [["1.1", "計畫預算核定", "2026-01-01", "2026-01-31", "2026-03-26", "2026-04-28", "d"], ["2.3", "議價", "2026-05-06", "2026-05-06", "2026-05-06", "2026-05-06", "d"], ["2.4", "決標", "2026-05-06", "2026-05-06", "2026-05-06", "2026-05-06", "f"], ["3.1", "圖說送審", "2026-05-07", "2026-05-20", "2026-05-07", "2026-05-20", "d"], ["3.2", "圖說審查", "2026-05-21", "2026-05-31", "2026-05-21", "2026-06-25", "d"], ["3.3", "圖說修正", "2026-05-22", "2026-06-01", "2026-05-22", "2026-06-25", "d"], ["4.1", "招標文件製作", "2026-06-29", "2026-06-29", "2026-06-29", "2026-07-01", "d"], ["4.2", "招標公告", "2026-07-02", "2026-07-20", "2026-07-02", "2026-07-20", "d"], ["4.3", "開標", "2026-07-21", "2026-07-21", "2026-07-21", "2026-08-12", "f"], ["4.4", "決標", null, null, null, null, "f"], ["5.1", "函文請建築師變更設計為RC", "2026-08-20", "2026-08-20", "2026-09-01", "2026-09-02", "g"], ["5.1", "提送基本設計", "2026-10-21", "2026-10-21", "2026-10-21", null, "d"], ["5.1", "提送細部設計", "2026-11-15", "2026-11-15", null, null, "g"], ["5.1", "申請建照", "2026-11-02", "2026-12-31", null, null, "t"], ["4.1", "招標文件製作", "2026-12-21", "2026-12-21", null, null, "t"], ["4.2", "招標公告", "2026-12-29", "2027-01-11", null, null, "t"], ["4.3", "開標", "2027-01-12", "2027-01-12", null, null, "t"], ["4.4", "決標", "2027-01-12", "2027-01-12", null, null, "t"], ["5.1", "廠商提送三書", "2027-01-13", "2027-01-19", null, null, "t"], ["5.2", "開工", "2027-01-21", "2027-07-20", null, null, "t"], ["5.3", "竣工確認", "2027-07-21", "2027-07-26", null, null, "t"], ["6.1", "驗收", "2027-07-28", "2027-07-30", null, null, "t"], ["6.2", "付款作業", "2027-08-01", "2027-08-12", null, null, "t"]]},
  {"name": "5. 交通車廊道鋼構工程", "short": "交通車廊道鋼構", "done": 0, "total": 17, "pct": 0.0, "tasks": [["1.1", "計畫預算核定", null, null, null, null, "t"], ["2.1", "招標公告", null, null, null, null, "t"], ["2.2", "開標", null, null, null, null, "t"], ["2.3", "評審會議", null, null, null, null, "t"], ["2.4", "簽約", null, null, null, null, "t"], ["3.1", "圖說送審", null, null, null, null, "t"], ["3.2", "圖說審查", null, null, null, null, "t"], ["3.3", "圖說修正", null, null, null, null, "t"], ["4.1", "招標文件製作", null, null, null, null, "t"], ["4.2", "招標公告", null, null, null, null, "t"], ["4.3", "開標", null, null, null, null, "t"], ["4.4", "決標", null, null, null, null, "t"], ["5.1", "廠商提送三書", null, null, null, null, "t"], ["5.2", "開工", null, null, null, null, "t"], ["5.3", "竣工確認", null, null, null, null, "t"], ["6.1", "驗收", null, null, null, null, "t"], ["6.2", "付款作業", null, null, null, null, "t"]]}
 ];
-const CODE = {d:'done', g:'doing', t:'todo', f:'fail'};
+const CODE = {d:'done', g:'doing', t:'todo', f:'fail', n:'na'};
 
 // Derive per-task status and overdue flag (p.tasks holds raw tuples until normalized)
 function normalize(p){
   p.tasks = p.tasks.map(r => {
     const [id,name,ps,pe,as,ae,c,note] = r;
     let st = CODE[c];
-    if (st !== 'done' && st !== 'fail' && pe && t(pe) < t(TODAY)) st = 'overdue';
+    if (st !== 'done' && st !== 'fail' && st !== 'na' && pe && t(pe) < t(TODAY)) st = 'overdue';
     return {id,name,ps,pe,as,ae,st,raw:c,note:note||''};
   });
 }
@@ -264,7 +266,8 @@ function barsFor(task){
 function memoStar(task){
   const ends = [task.pe, task.ae, task.as, task.ps].filter(Boolean);
   if (!task.ae && task.as && (task.st === 'doing' || task.raw === 'g')) ends.push(TODAY);
-  const last = ends.length ? ends.sort().pop() : TODAY;
+  if (!ends.length) return `<div class="memo-star" style="left:0" aria-hidden="true">★</div>`;
+  const last = ends.sort().pop();
   const left = clamp(pct(last) + 100*DAY/(t(RANGE_END)-t(RANGE_START)));
   return `<div class="memo-star" style="left:${left}%" aria-hidden="true">★</div>`;
 }
@@ -278,12 +281,12 @@ function renderGantt(){
   let head = '';
   let rows = '';
   projs.forEach(([p,i]) => {
-    const tasks = p.tasks.filter(x => state.filter==='all' || (state.filter==='open' && x.st!=='done') || (state.filter==='overdue' && x.st==='overdue') || (state.filter==='note' && x.note));
+    const tasks = p.tasks.filter(x => state.filter==='all' || (state.filter==='open' && x.st!=='done' && x.st!=='na') || (state.filter==='overdue' && x.st==='overdue') || (state.filter==='note' && x.note));
     if (!tasks.length) return;
     rows += `<div class="lbl-row proj-row">${esc(p.name)}</div><div class="leg-cell">${LEGEND}</div>`;
     rows += `<div class="lbl-head">工作項目</div><div class="axis">${gridLines()}${monthLabels()}<div class="today" style="left:${pct(TODAY)}%"></div></div>`;
     tasks.forEach(x => {
-      rows += `<div class="lbl-row"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.note ? `<span class="memo" title="備註：${esc(x.note)}">★ 備註</span>` : ''}</div>
+      rows += `<div class="lbl-row${x.st==='na' ? ' na' : ''}"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.st==='na' ? '<span class="na-tag">不適用</span>' : ''}${x.note ? `<span class="memo" title="備註：${esc(x.note)}">★ 備註</span>` : ''}</div>
       <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}${x.note ? memoStar(x) : ''}
         <div class="hit" tabindex="0" role="button" aria-label="${esc(p.short+' '+x.id+' '+x.name+' '+ST_LABEL[x.st])}" data-p="${PROJECTS.indexOf(p)}" data-t="${p.tasks.indexOf(x)}"></div></div>`;
     });
@@ -428,7 +431,7 @@ const TABS = [
   '交通車廊道鋼構工程'
 ];
 const RANGE = 'A1:K70'; // K 欄為「備註說明」
-const STATUS_CODE = {'已完成':'d','進行中':'g','流標':'f','未開始':'t'};
+const STATUS_CODE = {'已完成':'d','進行中':'g','流標':'f','未開始':'t','不適用':'n'};
 const normDate = s => {
   const m = String(s||'').trim().match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
   return m ? `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` : null;
@@ -457,7 +460,7 @@ function parseTab(rows){
     const id = String(row[0]||'').trim();
     if (!/^\d+\.\d+$/.test(id)) return;
     const status = String(row[9]||'').trim();
-    if (status === '不適用') return;
+    if (status === '不適用' && !String(row[10]||'').trim()) return; // 不適用但有備註的任務仍顯示
     const code = STATUS_CODE[status] || (status ? null : 't');
     if (!code) return;
     tasks.push([id, String(row[2]||'').trim(), normDate(row[5]), normDate(row[6]), normDate(row[7]), normDate(row[8]), code, String(row[10]||'').trim()]);
