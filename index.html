@@ -428,8 +428,8 @@ const cellText = c => {
   if (v === null || v === undefined) return c.f ?? '';
   return String(v);
 };
-function parseTab(table){
-  const rows = (table.rows || []).map(r => (r.c || []).map(cellText));
+const gvizRows = table => (table.rows || []).map(r => (r.c || []).map(cellText));
+function parseTab(rows){
   let total = null, done = null;
   rows.slice(0,6).forEach(row => row.forEach((k,j) => {
     if (String(k).trim() === '總任務數:') total = Number(row[j+1]);
@@ -447,9 +447,9 @@ function parseTab(table){
   });
   return {tasks, total, done};
 }
-function applyLive(i, table){
+function applyLive(i, rows){
   const p = PROJECTS[i];
-  const parsed = parseTab(table);
+  const parsed = parseTab(rows);
   if (!parsed.tasks.length) return false;
   p.tasks = parsed.tasks;
   p.done = parsed.done ?? parsed.tasks.filter(x => x[6]==='d').length;
@@ -463,7 +463,7 @@ const fmtTime = ms => new Date(ms).toLocaleTimeString('zh-TW', {timeZone:'Asia/T
 let lastSync = null;
 function setLive(msg){ liveEl.textContent = msg; }
 // Each tab is fetched as a JSONP-style response: google.visualization.Query.setResponse({...});
-function loadTab(name){
+function loadGviz(name){
   return new Promise((resolve, reject) => {
     const cb = 'gv_' + Math.random().toString(36).slice(2);
     const s = document.createElement('script');
@@ -472,19 +472,51 @@ function loadTab(name){
     window.google = window.google || {};
     window.google.visualization = window.google.visualization || {};
     window.google.visualization.Query = window.google.visualization.Query || {};
-    window.google.visualization.Query.setResponse = resp => { cleanup(); resp.status === 'ok' ? resolve(resp.table) : reject(new Error(resp.status)); };
+    window.google.visualization.Query.setResponse = resp => { cleanup(); resp.status === 'ok' ? resolve(gvizRows(resp.table)) : reject(new Error(resp.status)); };
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:setResponse&headers=0&sheet=${encodeURIComponent(name)}&range=${encodeURIComponent(RANGE)}`;
     s.src = url;
     s.onerror = () => { cleanup(); reject(new Error('network')); };
     document.head.appendChild(s);
   });
 }
+// 主要來源：試算表「檔案 → 共用 → 發布到網路」的 CSV（學校網域無法設「知道連結者可檢視」時使用）
+const PUB_ID = '2PACX-1vRBVwf_UJUJ1gX5-U8UO_efPfKTHmxyIAnUAQhkIqI7xXShRT2sI3Ew40wZ_P576Hc-l5WqnDTTuZ-Y';
+const GIDS = [760978693, 938132536, 1909063735, 1809250843, 1803050616]; // 與 TABS 順序對應
+function parseCSV(text){
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') { if (text[i+1] === '"') { f += '"'; i++; } else q = false; }
+      else f += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(f); f = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      row.push(f); rows.push(row); row = []; f = '';
+    } else f += ch;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+async function loadPub(i){
+  const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${GIDS[i]}&single=true&output=csv&_=${Date.now()}`;
+  const r = await fetch(url, {cache: 'no-store'});
+  if (!r.ok) throw new Error('http ' + r.status);
+  const txt = await r.text();
+  if (/^\s*</.test(txt)) throw new Error('not csv');
+  return parseCSV(txt);
+}
+async function loadTab(i){
+  try { return await loadPub(i); }
+  catch (e) { return await loadGviz(TABS[i]); }
+}
 async function syncAll(){
   let ok = 0;
-  const results = await Promise.allSettled(TABS.map(loadTab));
+  const results = await Promise.allSettled(TABS.map((_, i) => loadTab(i)));
   results.forEach((r, i) => { if (r.status === 'fulfilled' && applyLive(i, r.value)) ok++; });
   if (ok === 0) {
-    setLive('無法讀取試算表，顯示的是 2026/11/07 的快照資料。請確認試算表已設為「知道連結者可檢視」');
+    setLive('無法讀取試算表，顯示的是 2026/11/07 的快照資料。請確認試算表仍為「發布到網路」狀態');
     return;
   }
   lastSync = Date.now();
