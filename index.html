@@ -66,6 +66,8 @@ h2{font-size:16px;margin:0 0 10px}
 .memo-star{position:absolute;top:50%;transform:translateY(-50%);margin-left:4px;font-size:15px;line-height:1;color:#e0a800;text-shadow:0 0 2px var(--panel),0 0 2px var(--panel);pointer-events:none;z-index:2}
 .tip .note-box{display:block;margin:6px 0;padding:6px 8px;border-radius:5px;background:#fff3cd;color:#5c4400;border-left:3px solid #e0a800;white-space:pre-wrap;font-weight:600}
 .tip{max-width:300px}
+.tip.memo-only{background:none;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.18);border-radius:5px}
+.tip.memo-only .note-box{margin:0;border:1px solid #f0d58a;border-left:3px solid #e0a800}
 .track{position:relative;height:30px;border-bottom:1px solid var(--grid)}
 .track.proj-row{height:26px}
 .lbl-row.proj-row{height:auto;min-height:34px;white-space:normal;border-top:2px solid var(--line)}
@@ -302,7 +304,7 @@ function setPressed(id, v){
 
 const tip = document.getElementById('tip');
 function showTip(e, html){
-  tip.innerHTML = html; tip.hidden = false;
+  tip.classList.remove('memo-only'); tip.innerHTML = html; tip.hidden = false;
   const r = e.target.getBoundingClientRect();
   const x = Math.min(window.innerWidth - 270, Math.max(8, r.left + r.width/2 - 120));
   tip.style.left = x + 'px'; tip.style.top = (r.top - 8 - tip.offsetHeight) + 'px';
@@ -316,18 +318,19 @@ function dateAt(clientX, el){
   const d = new Date(t(RANGE_START) + ratio * (t(RANGE_END) - t(RANGE_START)));
   return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}（${WD[d.getUTCDay()]}）`;
 }
-function hideHover(){ tip.hidden = true; hline.hidden = true; }
+function hideHover(){ tip.hidden = true; hline.hidden = true; tip.classList.remove('memo-only'); }
 function placeTip(cx, cy){
   let x = cx + 14, y = cy + 16;
   if (x + tip.offsetWidth > innerWidth - 8) x = cx - 14 - tip.offsetWidth;
   if (y + tip.offsetHeight > innerHeight - 8) y = cy - 16 - tip.offsetHeight;
   tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
 }
-// 工作項目欄的「★ 備註」標籤：滑鼠移過去、鍵盤聚焦或手機點一下，顯示同一張任務卡片
+// 工作項目欄的「★ 備註」標籤：滑鼠移過去、鍵盤聚焦或手機點一下，只顯示備註文字（完整任務卡片留給甘特圖）
 function showMemo(m, cx, cy){
   const p = PROJECTS[m.dataset.p], x = p.tasks[m.dataset.t];
   hline.hidden = true;
-  tip.innerHTML = tipText(p, x); tip.hidden = false;
+  tip.classList.add('memo-only');
+  tip.innerHTML = `<span class="note-box">★ 備註：${esc(x.note)}</span>`; tip.hidden = false;
   if (cx == null) { const r = m.getBoundingClientRect(); cx = r.left; cy = r.bottom - 8; }
   placeTip(cx, cy);
 }
@@ -339,6 +342,7 @@ gridEl.addEventListener('pointermove', e => {
   let html = `<b>游標日期：${dateAt(e.clientX, tr)}</b>`;
   const h = e.target.closest('.hit');
   if (h) { const p = PROJECTS[h.dataset.p], x = p.tasks[h.dataset.t]; html += `<div style="border-top:1px solid currentColor;opacity:.35;margin:5px 0"></div>` + tipText(p,x); }
+  tip.classList.remove('memo-only');
   tip.innerHTML = html; tip.hidden = false;
   placeTip(e.clientX, e.clientY);
   hline.hidden = false;
