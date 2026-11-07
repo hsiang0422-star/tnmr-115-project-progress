@@ -4,4 +4,5 @@
 - 修改這個頁面時，一律先從本 repo 拉最新內容（`git pull origin main`）再改，不要以 claude.ai 上的「工程進度甘特圖」Artifact 為基準，那份是較舊的分支版本。
 - 改完後在本機用瀏覽器確認畫面，再 commit 並推送到 `main`，GitHub Pages 會自動部署。
 - 施工照片放在 `photos/`，照片清單在 `index.html` 的 PHOTOS 陣列（pid 對應工程編號）。
-- 資料來源為 Google 試算表「115學年度臺南特教工程執行進度總覽」，頁面讀取「發布到網路」的 CSV（index.html 的 PUB_ID 與 GIDS，GIDS 順序須與 TABS 對應），失敗時改試 gviz；讀取失敗時顯示內建快照。
+- 資料來源：學校原始試算表 `1ocB5KTsdMfxwsoi3hO2SZsPs2aGNNsGs_efBiMlikzY`（學校網域，無法對外公開）→ 個人帳號的公開鏡像 `1-faQIzsanySNZc-RZEr31LzLWj8eMN2rVZwyrWFOk8U`（IMPORTRANGE，分頁名稱沒有「1. 」等編號前綴）。頁面以 gviz JSONP 讀鏡像（index.html 的 SHEET_ID、TABS）。
+- gviz 依多數型別決定欄位型別，少數型別格子會變空值，所以摘要列（A3:J3、A4:J4）另外單列讀取。新增工程時要同時在學校試算表、鏡像（新分頁＋IMPORTRANGE）與 TABS、PROJECTS 加上。
