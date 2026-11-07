@@ -72,7 +72,7 @@ h2{font-size:16px;margin:0 0 10px}
 .track.proj-row{height:26px}
 .lbl-row.proj-row{height:auto;min-height:34px;white-space:normal;border-top:2px solid var(--line)}
 .proj-row .plinks{display:block;font-weight:400;font-size:12px;margin-top:2px}
-.proj-row .plinks a{color:var(--brand)}
+.proj-row .plinks a{color:var(--brand);display:block}
 .leg-cell{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12px;color:var(--muted);padding:6px 10px;background:var(--bg);border-top:2px solid var(--line);border-bottom:1px solid var(--grid);min-height:34px}
 .leg-cell span{display:inline-flex;align-items:center;gap:5px}
 .mlab{position:absolute;top:8px;background:var(--panel);margin-left:1px;padding-right:3px;line-height:16px;font-size:11px;color:var(--muted);font-weight:400;padding-left:3px;white-space:nowrap;pointer-events:none;z-index:2}
@@ -284,12 +284,13 @@ function tipText(p, task){
 // 各工程的相關網頁連結（依 short 名稱對應，試算表重新載入時不會被覆蓋）
 const PROJECT_LINKS = {
   '無障礙斜坡道': [
-    ['115年度防災校園到校輔導訪視', 'https://hsiang0422-star.github.io/disaster-visit/']
+    ['115年度防災校園到校輔導訪視', 'https://hsiang0422-star.github.io/disaster-visit/'],
+    ['1151021校園防災訪視輔導會議紀錄', 'https://drive.google.com/file/d/1HG0vwf5eLR0p3ZY4hVqC75tj_XO8JWUQ/view?usp=drivesdk']
   ]
 };
 const projLinks = p => {
   const list = PROJECT_LINKS[p.short] || [];
-  return list.length ? `<span class="plinks">${list.map(([t,u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)} ↗</a>`).join('　')}</span>` : '';
+  return list.length ? `<span class="plinks">${list.map(([t,u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)} ↗</a>`).join('')}</span>` : '';
 };
 function renderGantt(){
   const projs = state.scope==='all' ? PROJECTS.map((p,i)=>[p,i]) : [[PROJECTS[state.sel], state.sel]];
