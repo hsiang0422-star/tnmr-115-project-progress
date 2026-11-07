@@ -59,6 +59,7 @@ h2{font-size:16px;margin:0 0 10px}
 .lbl-row .nm{overflow:hidden;text-overflow:ellipsis}
 .lbl-row.na .nm,.lbl-row.na .id{color:var(--muted);text-decoration:line-through}
 .na-tag{flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:1px 6px}
+.memo:hover,.memo:focus-visible{outline:2px solid #e0a800;outline-offset:1px}
 .memo{flex:none;display:inline-flex;align-items:center;gap:2px;font-size:11px;line-height:1;padding:2px 6px;border-radius:9px;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;cursor:help}
 :root[data-theme="dark"] .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .memo{background:#3a3016;color:#f3d27a;border-color:#6b5520}}
@@ -286,7 +287,7 @@ function renderGantt(){
     rows += `<div class="lbl-row proj-row">${esc(p.name)}</div><div class="leg-cell">${LEGEND}</div>`;
     rows += `<div class="lbl-head">工作項目</div><div class="axis">${gridLines()}${monthLabels()}<div class="today" style="left:${pct(TODAY)}%"></div></div>`;
     tasks.forEach(x => {
-      rows += `<div class="lbl-row${x.st==='na' ? ' na' : ''}"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.st==='na' ? '<span class="na-tag">不適用</span>' : ''}${x.note ? `<span class="memo" title="備註：${esc(x.note)}">★ 備註</span>` : ''}</div>
+      rows += `<div class="lbl-row${x.st==='na' ? ' na' : ''}"><span class="id">${esc(x.id)}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span>${x.st==='na' ? '<span class="na-tag">不適用</span>' : ''}${x.note ? `<span class="memo" tabindex="0" role="button" aria-label="${esc('備註：' + x.note)}" data-p="${PROJECTS.indexOf(p)}" data-t="${p.tasks.indexOf(x)}">★ 備註</span>` : ''}</div>
       <div class="track">${gridLines()}<div class="today" style="left:${pct(TODAY)}%"></div>${barsFor(x)}${x.note ? memoStar(x) : ''}
         <div class="hit" tabindex="0" role="button" aria-label="${esc(p.short+' '+x.id+' '+x.name+' '+ST_LABEL[x.st])}" data-p="${PROJECTS.indexOf(p)}" data-t="${p.tasks.indexOf(x)}"></div></div>`;
     });
@@ -316,22 +317,37 @@ function dateAt(clientX, el){
   return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}（${WD[d.getUTCDay()]}）`;
 }
 function hideHover(){ tip.hidden = true; hline.hidden = true; }
+function placeTip(cx, cy){
+  let x = cx + 14, y = cy + 16;
+  if (x + tip.offsetWidth > innerWidth - 8) x = cx - 14 - tip.offsetWidth;
+  if (y + tip.offsetHeight > innerHeight - 8) y = cy - 16 - tip.offsetHeight;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+// 工作項目欄的「★ 備註」標籤：滑鼠移過去、鍵盤聚焦或手機點一下，顯示同一張任務卡片
+function showMemo(m, cx, cy){
+  const p = PROJECTS[m.dataset.p], x = p.tasks[m.dataset.t];
+  hline.hidden = true;
+  tip.innerHTML = tipText(p, x); tip.hidden = false;
+  if (cx == null) { const r = m.getBoundingClientRect(); cx = r.left; cy = r.bottom - 8; }
+  placeTip(cx, cy);
+}
+gridEl.addEventListener('click', e => { const m = e.target.closest('.memo'); if (m) showMemo(m, e.clientX, e.clientY); });
+document.addEventListener('click', e => { if (!e.target.closest('#grid')) hideHover(); });
 gridEl.addEventListener('pointermove', e => {
+  const m = e.target.closest('.memo'); if (m) { showMemo(m, e.clientX, e.clientY); return; }
   const tr = e.target.closest('.track, .axis'); if (!tr) { hideHover(); return; }
   let html = `<b>游標日期：${dateAt(e.clientX, tr)}</b>`;
   const h = e.target.closest('.hit');
   if (h) { const p = PROJECTS[h.dataset.p], x = p.tasks[h.dataset.t]; html += `<div style="border-top:1px solid currentColor;opacity:.35;margin:5px 0"></div>` + tipText(p,x); }
   tip.innerHTML = html; tip.hidden = false;
-  let x = e.clientX + 14, y = e.clientY + 16;
-  if (x + tip.offsetWidth > innerWidth - 8) x = e.clientX - 14 - tip.offsetWidth;
-  if (y + tip.offsetHeight > innerHeight - 8) y = e.clientY - 16 - tip.offsetHeight;
-  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  placeTip(e.clientX, e.clientY);
   hline.hidden = false;
   hline.style.left = (e.clientX - ganttEl.getBoundingClientRect().left + ganttEl.scrollLeft) + 'px';
   hline.style.height = gridEl.offsetHeight + 'px';
 });
 gridEl.addEventListener('pointerleave', hideHover);
 document.getElementById('grid').addEventListener('focusin', e => {
+  const m = e.target.closest('.memo'); if (m) { showMemo(m); return; }
   const h = e.target.closest('.hit'); if (!h) return;
   const p = PROJECTS[h.dataset.p], x = p.tasks[h.dataset.t];
   showTip({target:h}, tipText(p,x));
