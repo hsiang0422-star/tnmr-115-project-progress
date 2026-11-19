@@ -119,7 +119,7 @@ h2{font-size:16px;margin:0 0 10px}
 </style>
 
 <h1>115學年度臺南特教工程執行進度</h1>
-<p class="sub">資料快照：來源試算表「115學年度臺南特教工程執行進度總覽」（內建快照更新於 2026-11-14）。<a href="https://docs.google.com/spreadsheets/d/1ocB5KTsdMfxwsoi3hO2SZsPs2aGNNsGs_efBiMlikzY/edit" target="_blank" rel="noopener">開啟原始試算表 ↗</a></p>
+<p class="sub">資料快照：來源試算表「115學年度臺南特教工程執行進度總覽」（內建快照更新於 2026-11-19）。<a href="https://docs.google.com/spreadsheets/d/1ocB5KTsdMfxwsoi3hO2SZsPs2aGNNsGs_efBiMlikzY/edit" target="_blank" rel="noopener">開啟原始試算表 ↗</a></p>
 
 <p class="sub" id="live" role="status">即時連動：連線中…</p>
 <section class="kpis" id="kpis"></section>
@@ -1057,6 +1057,15 @@ const PROJECTS = [
         "t"
       ]
     ]
+  },
+  {
+    "name": "6. 購置大型巴士專案",
+    "start": null,
+    "short": "購置大型巴士",
+    "done": 0,
+    "total": 0,
+    "pct": 0,
+    "tasks": []
   }
 ];
 const CODE = {d:'done', g:'doing', t:'todo', f:'fail', n:'na'};
@@ -1427,7 +1436,7 @@ async function syncAll(){
   const results = await Promise.allSettled(TABS.map((_, i) => loadTab(i)));
   results.forEach((r, i) => { if (r.status === 'fulfilled' && applyLive(i, r.value)) ok++; });
   if (ok === 0) {
-    setLive('無法讀取試算表，顯示的是 2026/11/14 的快照資料。請確認公開鏡像試算表仍為「知道連結的任何人可檢視」');
+    setLive('無法讀取試算表，顯示的是 2026/11/19 的快照資料。請確認公開鏡像試算表仍為「知道連結的任何人可檢視」');
     return;
   }
   lastSync = Date.now();
